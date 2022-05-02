@@ -33,7 +33,7 @@ first = True
 headers = []
 
 
-def patient_name(root):
+def apatient_name(root):
     print('MRQy is starting....')
     files = [os.path.join(dirpath,filename) for dirpath, _, filenames in os.walk(root) 
                 for filename in filenames 
@@ -80,6 +80,38 @@ def patient_name(root):
 
     
     subjects = subjects_id + mhas_subjects + mat_subjects
+    print('The number of patients is {}'.format(len(subjects)))
+    return files, subjects, splits, mhas, mhas_subjects, mats, mat_subjects
+
+def patient_name(rootdir, tsv):
+    print('MRQy is starting....')
+
+    df = pd.read_csv(tsv, sep='\t')
+
+    mhas_subjects = []
+    mat_subjects = []
+    mats = []
+    mhas = []
+    splits=[] # TO REMOVE
+    for idx in df.index.values:
+        participant = df.loc[idx, "participant_id"]
+        session = df.loc[idx, "session_id"]
+        path_part = os.path.join(rootdir, participant)
+        path_sess = os.path.join(path_part, session)
+        d = os.path.join(path_sess, 't1_linear')
+        name_mri = f'{participant}_{session}_T1w_space-MNI152NLin2009cSym_desc-Crop_res-1x1x1_T1w.nii.gz'
+        src = os.path.join(d, name_mri)
+        mhas_subjects.append(name_mri)
+        mhas.append(src)
+
+        name_mri_mat = f'{participant}_{session}_T1w_space-MNI152NLin2009cSym_res-1x1x1_T1w.mat'
+        src_mat = os.path.join(d, name_mri_mat)
+        mat_subjects.append(name_mri_mat)
+        mats.append(src_mat)
+
+
+    subjects = mhas_subjects + mat_subjects
+    files = mhas + mats
     print('The number of patients is {}'.format(len(subjects)))
     return files, subjects, splits, mhas, mhas_subjects, mats, mat_subjects
 
@@ -259,6 +291,9 @@ if __name__ == '__main__':
     parser.add_argument('inputdir',
                         help = "input foldername consists of *.mha (*.nii or *.dcm) files. For example: 'E:\\Data\\Rectal\\input_data_folder'",
                         nargs = "*")
+    parser.add_argument('tsvdir',
+                        help = "input tsv file",
+                        nargs = "*")
     parser.add_argument('-r', help="folders as name", default=False)
     
     parser.add_argument('-s', help="save foreground masks", default=False)
@@ -270,6 +305,8 @@ if __name__ == '__main__':
     
     args = parser.parse_args() 
     root = args.inputdir[0]
+    tsv = args.tsvdir
+    print(tsv)
     
     if args.r == 0:
         folders_flag = "False"
@@ -310,7 +347,7 @@ if __name__ == '__main__':
     
     overwrite_flag = "w"        
     headers.append(f"outdir:\t{os.path.realpath(fname_outdir)}") 
-    patients, names, dicom_spil, nondicom_spli, nondicom_names, mat_spli, mat_names = patient_name(root)
+    patients, names, dicom_spil, nondicom_spli, nondicom_names, mat_spli, mat_names = patient_name(root, '/export/home/cse180022/apprimage_sophie/scripts/sub_test_mov.tsv')
 
     if len(dicom_spil) > 0 and len(nondicom_spli) > 0 and len(mat_spli) > 0:
         dicom_flag = True
